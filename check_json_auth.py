@@ -4,15 +4,17 @@ import nagiosplugin
 import json
 from flatten_json import flatten
 import urllib.request
+import base64
 import argparse
 import logging
 import re
 import datetime as dt
 import pendulum
 import sys
-
 class CheckJSON(nagiosplugin.Resource):
-    def __init__(self=None, url=None, jsn=None, key=None, match=None, function=None, regex=None, timezone=None, timeformat=None, timeduration=None):
+    def __init__(self=None, url=None, jsn=None, key=None, match=None,
+                 function=None, regex=None, timezone=None, timeformat=None,
+                 timeduration=None, usr=None, pwd=None):
         self.url = url
         self.key = key
         self.match = match
@@ -30,10 +32,19 @@ class CheckJSON(nagiosplugin.Resource):
         self.hours = 0
         self.days = 0
         self.tdiff = 0
+        self.usr = usr
+        self.pwd = pwd
 
     def _GetJSON(self):
         try:
             if self.url is not None:
+                password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+                #password_mgr.add_password(None, self.url, self.usr, self.pwd)
+                password_mgr.add_password(None, self.url, "pa", "test")
+                handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
+                opener = urllib.request.build_opener(handler)
+                opener.open(self.url)
+                urllib.request.install_opener(opener)
                 with urllib.request.urlopen(self.url) as response:
                     rawJSON = json.loads(response.read().decode())
                     logging.debug("JSON Data: %s", str(rawJSON))
@@ -128,6 +139,8 @@ class CheckJSON(nagiosplugin.Resource):
 
 @nagiosplugin.guarded
 def main():
+    usr = ""
+    pwd = ""
     argp = argparse.ArgumentParser(description=__doc__)
     argp.add_argument('-u',  '--url',           help='URL to obtain JSON data.')
     argp.add_argument('-j',  '--json',          help='If not specifying a URL, you can specify the JSON string directly.')
@@ -142,6 +155,8 @@ def main():
     argp.add_argument('-c',  '--critical')
     argp.add_argument('-v',  '--verbose',       action="store_true")
     argp.add_argument('-D',  '--debug',         default='INFO', action='store_true')
+    argp.add_argument('-U',  '--username',      action='store', dest=usr)
+    argp.add_argument('-P',  '--password',      action='store', dest=pwd)
     args = argp.parse_args()
 
     logging.basicConfig(format='%(asctime)s [%(levelname)s] {%(funcName)s} %(message)s', level=args.debug)
