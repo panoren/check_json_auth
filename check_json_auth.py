@@ -39,8 +39,7 @@ class CheckJSON(nagiosplugin.Resource):
         try:
             if self.url is not None:
                 password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-                #password_mgr.add_password(None, self.url, self.usr, self.pwd)
-                password_mgr.add_password(None, self.url, "pa", "test")
+                password_mgr.add_password(None, self.url, self.usr, self.pwd)
                 handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
                 opener = urllib.request.build_opener(handler)
                 opener.open(self.url)
@@ -139,8 +138,6 @@ class CheckJSON(nagiosplugin.Resource):
 
 @nagiosplugin.guarded
 def main():
-    usr = ""
-    pwd = ""
     argp = argparse.ArgumentParser(description=__doc__)
     argp.add_argument('-u',  '--url',           help='URL to obtain JSON data.')
     argp.add_argument('-j',  '--json',          help='If not specifying a URL, you can specify the JSON string directly.')
@@ -155,33 +152,33 @@ def main():
     argp.add_argument('-c',  '--critical')
     argp.add_argument('-v',  '--verbose',       action="store_true")
     argp.add_argument('-D',  '--debug',         default='INFO', action='store_true')
-    argp.add_argument('-U',  '--username',      action='store', dest=usr)
-    argp.add_argument('-P',  '--password',      action='store', dest=pwd)
+    argp.add_argument('-U',  '--username',      action='store')
+    argp.add_argument('-P',  '--password',      action='store')
     args = argp.parse_args()
 
     logging.basicConfig(format='%(asctime)s [%(levelname)s] {%(funcName)s} %(message)s', level=args.debug)
 
     if args.function == 'auto':
-        args.function = CheckJSON(url=args.url, jsn=args.json, key=args.key, function=args.function, regex=args.regex).GetFunction()
+        args.function = CheckJSON(url=args.url, jsn=args.json, key=args.key, function=args.function, regex=args.regex, usr=args.username, pwd=args.password).GetFunction()
         logging.debug('Autofunction: %s', args.function)
 
     if args.function == 'timediff':
         check = nagiosplugin.Check(
             CheckJSON(url=args.url, jsn=args.json, key=args.key, function=args.function, regex=args.regex, timezone=args.timezone, timeformat=args.timeformat, timeduration=args.timeduration),
-            nagiosplugin.ScalarContext('timediff', args.warning, args.critical)
+            nagiosplugin.ScalarContext('timediff', args.warning, args.critical, usr=args.username, pwd=args.password)
         )
         check.main()
 
     elif args.function == 'match':
         check = nagiosplugin.Check(
-            CheckJSON(url=args.url, jsn=args.json, key=args.key, match=args.match, function=args.function),
+            CheckJSON(url=args.url, jsn=args.json, key=args.key, match=args.match, function=args.function, usr=args.username, pwd=args.password),
             nagiosplugin.ScalarContext('match' , '1:', '1:')
         )
         check.main()
     
     elif args.function == 'integer':
         check = nagiosplugin.Check(
-            CheckJSON(url=args.url, jsn=args.json, key=args.key, function=args.function),
+            CheckJSON(url=args.url, jsn=args.json, key=args.key, function=args.function, usr=args.username, pwd=args.password),
             nagiosplugin.ScalarContext('integer', args.warning, args.critical)
         )
         check.main()
